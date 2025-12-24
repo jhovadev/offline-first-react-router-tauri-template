@@ -1,0 +1,58 @@
+import type { StorybookConfig } from '@storybook/react-vite';
+import { mergeConfig } from 'vite';
+
+const config: StorybookConfig = {
+  "stories": [
+    "../stories/**/*.mdx",
+    "../stories/**/*.stories.@(js|jsx|mjs|ts|tsx)"
+  ],
+  "addons": [
+    "@chromatic-com/storybook",
+    "@storybook/addon-vitest",
+    "@storybook/addon-a11y",
+    "@storybook/addon-docs",
+    "@storybook/addon-onboarding"
+  ],
+  "framework": "@storybook/react-vite",
+  async viteFinal(config) {
+    return mergeConfig(config, {
+      plugins: config.plugins?.filter((plugin) => {
+        // Filter out the React Router plugin as it conflicts with Storybook
+        // The plugin object might be complex, but usually has a name or we can check
+        // if it's the one we suspect.
+        // However, config.plugins here comes from vite.config.ts?
+        // Yes, Storybook merges it.
+        // Let's print names if needed, but for now assuming we need to remove it.
+        // Actually, the error `The React Router Vite plugin requires the use of a Vite config file`
+        // implies we MIGHT need to explicitly remove it if inherited.
+        
+        // Safe check: if plugin has a name 'react-router' or similar. 
+        // But often easier is to define plugins explicitly without it.
+        return true; 
+      }).map(p => {
+          // React Router plugin is tricky to identify by string comparison sometimes if it's an object.
+          // Better approach: config.plugins = config.plugins.filter(...)
+          // Let's try to remove it by excluding it from the merged config?
+          // No, easiest is to just not include it in the plugins list.
+          // BUT plugins: [reactRouter()] is in vite.config.ts
+          return p;
+      })
+    });
+  }
+};
+
+// Revise approach:
+// We can't easily filter strictly by name if we don't know the exact internal name. 
+// Use `withoutVitePlugins` option if available? No.
+// Let's try to simple `viteFinal` that removes it.
+
+export default {
+  ...config,
+  async viteFinal(config) {
+     const { mergeConfig } = await import('vite');
+     return mergeConfig(config, {
+       plugins: [] // This merges, doesn't replace.
+     });
+     // To remove, we must iterate.
+  }
+};
